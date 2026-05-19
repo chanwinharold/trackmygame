@@ -21,10 +21,22 @@ Créer un Web Service Render depuis ce repo.
 Configuration:
 
 ```text
-Root directory: .
-Build command: pip install -r api/requirements.txt
-Start command: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+Root directory: api
+Build command: pip install -r requirements.txt
+Start command: uvicorn main:app --host 0.0.0.0 --port $PORT
 Health check path: /health
+```
+
+Si Render est configuré avec `Root directory: api`, le start command doit être:
+
+```text
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+Si Render est configuré avec `Root directory: .`, le start command doit être:
+
+```text
+uvicorn api.main:app --host 0.0.0.0 --port $PORT
 ```
 
 Variables d'environnement Render:

@@ -1,10 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .app.config import get_settings
-from .app.database import Base, SessionLocal, engine
-from .app.routers import analytics, auth, dashboard, profile, workouts
-from .app.seed import seed_demo_data
+try:
+    from .app.config import get_settings
+    from .app.database import Base, SessionLocal, engine
+    from .app.routers import analytics, auth, dashboard, profile, workouts
+    from .app.seed import seed_demo_data
+except ImportError:
+    from app.config import get_settings
+    from app.database import Base, SessionLocal, engine
+    from app.routers import analytics, auth, dashboard, profile, workouts
+    from app.seed import seed_demo_data
 
 
 settings = get_settings()
