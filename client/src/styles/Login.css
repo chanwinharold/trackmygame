@@ -282,6 +282,12 @@
   color: var(--accent);
 }
 
+.error-note {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+}
+
 @media (max-width: 640px) {
   .login-card {
     padding: 0 24px 32px;

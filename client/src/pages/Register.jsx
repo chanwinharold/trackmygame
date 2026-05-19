@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { authApi, setToken } from '../lib/api.js'
 import '../styles/Login.css'
 
 export default function Register() {
@@ -10,15 +11,40 @@ export default function Register() {
     confirm: '',
   })
   const [accept, setAccept] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    navigate('/dashboard')
+    setError('')
+    if (!accept) {
+      setError('Please accept the terms to continue.')
+      return
+    }
+    if (form.password !== form.confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const response = await authApi.register({
+        username: form.username,
+        displayName: form.username,
+        email: form.email,
+        password: form.password,
+      })
+      setToken(response.accessToken)
+      navigate('/dashboard', { replace: true })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -45,6 +71,7 @@ export default function Register() {
         <div className="auth-note">
           <strong>Elite profile setup.</strong> Use an email you can access for performance reports.
         </div>
+        {error && <div className="auth-note error-note">{error}</div>}
 
         <div className="register-grid">
           <div className="form-group">
@@ -126,7 +153,9 @@ export default function Register() {
           <span>I agree to the performance system terms</span>
         </label>
 
-        <button type="submit" className="btn btn-primary login-btn">CREATE ACCOUNT</button>
+        <button type="submit" className="btn btn-primary login-btn" disabled={submitting}>
+          {submitting ? 'CREATING...' : 'CREATE ACCOUNT'}
+        </button>
       </form>
 
       <footer className="login-footer">

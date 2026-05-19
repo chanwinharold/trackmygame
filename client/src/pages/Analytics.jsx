@@ -10,32 +10,30 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useEffect, useState } from 'react'
+import { analyticsApi } from '../lib/api.js'
 import '../styles/Analytics.css'
 
-const trendData = [
-  { label: 'W1', accuracy: 61, volume: 420 },
-  { label: 'W2', accuracy: 64, volume: 460 },
-  { label: 'W3', accuracy: 67, volume: 510 },
-  { label: 'W4', accuracy: 63, volume: 480 },
-  { label: 'W5', accuracy: 71, volume: 560 },
-  { label: 'W6', accuracy: 68, volume: 520 },
-]
-
-const shotProfile = [
-  { zone: 'Corner 3', value: 78 },
-  { zone: 'Wing', value: 66 },
-  { zone: 'Elbow', value: 72 },
-  { zone: 'Paint', value: 84 },
-  { zone: 'FT', value: 91 },
-]
-
-const zoneCards = [
-  { label: 'HOT ZONE', area: 'Right Corner', value: '78.2%', tone: 'hot' },
-  { label: 'STABLE', area: 'Free Throw Line', value: '91.0%', tone: 'stable' },
-  { label: 'FOCUS', area: 'Left Wing', value: '58.4%', tone: 'focus' },
-]
-
 export default function Analytics() {
+  const [analytics, setAnalytics] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    analyticsApi.get()
+      .then(setAnalytics)
+      .catch((err) => setError(err.message))
+  }, [])
+
+  if (error) {
+    return <div className="card empty-state">{error}</div>
+  }
+
+  if (!analytics) {
+    return <div className="card empty-state">Loading analytics...</div>
+  }
+
+  const { kpis, trend, shotProfile, zones, readout } = analytics
+
   return (
     <div className="analytics-page">
       <div className="page-header">
@@ -58,23 +56,23 @@ export default function Analytics() {
       <div className="analytics-kpis">
         <div className="analytics-kpi card">
           <span className="stat-label">CONSISTENCY INDEX</span>
-          <strong>87</strong>
-          <span>+9 pts over baseline</span>
+          <strong>{kpis.consistencyIndex}</strong>
+          <span>{kpis.consistencyDelta}</span>
         </div>
         <div className="analytics-kpi card">
           <span className="stat-label">SHOT QUALITY</span>
-          <strong>74.8%</strong>
-          <span>Best in close-range sets</span>
+          <strong>{kpis.shotQuality}%</strong>
+          <span>{kpis.shotQualityLabel}</span>
         </div>
         <div className="analytics-kpi card">
           <span className="stat-label">TRAINING LOAD</span>
-          <strong>520</strong>
-          <span>Attempts this week</span>
+          <strong>{kpis.trainingLoad}</strong>
+          <span>{kpis.trainingLoadLabel}</span>
         </div>
         <div className="analytics-kpi card">
           <span className="stat-label">EFFICIENCY DELTA</span>
-          <strong>+6.4%</strong>
-          <span>Compared to prior cycle</span>
+          <strong>{kpis.efficiencyDelta}</strong>
+          <span>{kpis.efficiencyDeltaLabel}</span>
         </div>
       </div>
 
@@ -86,7 +84,7 @@ export default function Analytics() {
           </div>
           <div className="analytics-chart">
             <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={trendData} margin={{ top: 8, right: 16, left: -18, bottom: 0 }}>
+              <AreaChart data={trend} margin={{ top: 8, right: 16, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="accuracyGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#f97316" stopOpacity={0.35} />
@@ -137,7 +135,7 @@ export default function Analytics() {
             <span>SCOUTING FLAGS</span>
           </div>
           <div className="zone-list">
-            {zoneCards.map((zone) => (
+            {zones.map((zone) => (
               <div className={`zone-row ${zone.tone}`} key={zone.area}>
                 <span>{zone.label}</span>
                 <strong>{zone.area}</strong>
@@ -150,18 +148,16 @@ export default function Analytics() {
         <section className="card analytics-report-card">
           <span className="stat-label">COACHING READOUT</span>
           <p>
-            Accuracy is trending upward when weekly volume stays above 500 attempts. Right-corner
-            efficiency is the strongest repeatable advantage; left-wing attempts remain the next
-            technical focus.
+            {readout.text}
           </p>
           <div className="readout-metrics">
             <div>
               <span>PEAK WEEK</span>
-              <strong>W5</strong>
+              <strong>{readout.peakWeek}</strong>
             </div>
             <div>
               <span>VOLATILITY</span>
-              <strong>LOW</strong>
+              <strong>{readout.volatility}</strong>
             </div>
           </div>
         </section>

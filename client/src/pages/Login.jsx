@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { authApi, setToken } from '../lib/api.js'
 import '../styles/Login.css'
 
 export default function Login() {
@@ -7,11 +8,24 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    navigate('/dashboard')
+    setError('')
+    setSubmitting(true)
+    try {
+      const response = await authApi.login({ email, password, rememberDevice: remember })
+      setToken(response.accessToken)
+      navigate(location.state?.from?.pathname || '/dashboard', { replace: true })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -34,6 +48,7 @@ export default function Login() {
           <h1>WELCOME BACK ATHLETE</h1>
           <p>Enter your credentials to access your performance dashboard.</p>
         </div>
+        {error && <div className="auth-note error-note">{error}</div>}
 
         <div className="form-group">
           <label htmlFor="email">USERNAME</label>
@@ -92,7 +107,9 @@ export default function Login() {
           <span>Remember device for 30 days</span>
         </label>
 
-        <button type="submit" className="btn btn-primary login-btn">SIGN IN</button>
+        <button type="submit" className="btn btn-primary login-btn" disabled={submitting}>
+          {submitting ? 'SIGNING IN...' : 'SIGN IN'}
+        </button>
       </form>
 
       <footer className="login-footer">

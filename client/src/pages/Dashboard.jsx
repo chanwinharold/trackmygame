@@ -6,8 +6,9 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import { dashboardStats } from '../data/data.js'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { dashboardApi } from '../lib/api.js'
 import '../styles/Dashboard.css'
 
 function StatCard({ value, label, change, sub }) {
@@ -85,7 +86,22 @@ function TrainingLogCard({ log }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const stats = dashboardStats
+  const [stats, setStats] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    dashboardApi.get()
+      .then(setStats)
+      .catch((err) => setError(err.message))
+  }, [])
+
+  if (error) {
+    return <div className="card empty-state">{error}</div>
+  }
+
+  if (!stats) {
+    return <div className="card empty-state">Loading dashboard...</div>
+  }
 
   return (
     <div className="dashboard">

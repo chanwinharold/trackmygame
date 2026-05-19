@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: trackmygame-api
+    runtime: python
+    rootDir: .
+    buildCommand: pip install -r api/requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: EXTRA_CORS_ORIGINS
+        sync: false

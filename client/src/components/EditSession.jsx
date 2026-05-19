@@ -1,17 +1,40 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { workoutsApi } from '../lib/api.js'
 import '../styles/EditSession.css'
 
 export default function EditSession() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const isNew = id === undefined
   const [form, setForm] = useState({
-    date: '11/24/2023',
+    date: new Date().toISOString().slice(0, 10),
     attempted: 150,
     made: 112,
     duration: 60,
     notes: 'Focus on high release point and consistent follow-through. Legs felt slightly tired in the second half of the session.',
   })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(!isNew)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (isNew) {
+      return
+    }
+    workoutsApi.get(id)
+      .then((session) => {
+        setForm({
+          date: session.date,
+          attempted: session.shotsAttempted,
+          made: session.shotsMade,
+          duration: session.durationMinutes,
+          notes: session.trainingNotes,
+        })
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [id, isNew])
 
   const accuracy = form.attempted > 0 ? Math.round((form.made / form.attempted) * 100) : 0
 
@@ -20,16 +43,36 @@ export default function EditSession() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    navigate(`/workouts/${id}`)
+    setError('')
+    setSaving(true)
+    const payload = {
+      date: form.date,
+      durationMinutes: form.duration,
+      shotsAttempted: form.attempted,
+      shotsMade: form.made,
+      notes: form.notes,
+    }
+    try {
+      const session = isNew ? await workoutsApi.create(payload) : await workoutsApi.update(id, payload)
+      navigate(`/workouts/${session.id}`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="card empty-state">Loading session...</div>
   }
 
   return (
     <div className="edit-session">
       <div className="page-header">
         <div>
-          <h1>Edit Session</h1>
+          <h1>{isNew ? 'New Session' : 'Edit Session'}</h1>
           <p className="page-subtitle">
             Update your training performance metrics and review detailed shooting stats.
           </p>
@@ -38,10 +81,11 @@ export default function EditSession() {
 
       <div className="edit-grid">
         <form className="edit-form card" onSubmit={handleSubmit}>
+          {error && <div className="auth-note error-note">{error}</div>}
           <div className="form-row">
             <div className="form-group">
               <label>SESSION DATE</label>
-              <input type="text" value={form.date} onChange={handleChange('date')} />
+              <input type="date" value={form.date} onChange={handleChange('date')} />
             </div>
             <div className="form-group">
               <label>DURATION (MINUTES)</label>
@@ -78,9 +122,9 @@ export default function EditSession() {
 
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">
-              SAVE SESSION
+              {saving ? 'SAVING...' : 'SAVE SESSION'}
             </button>
-            <button type="button" className="btn btn-outline" onClick={() => navigate(`/workouts/${id}`)}>
+            <button type="button" className="btn btn-outline" onClick={() => navigate(isNew ? '/workouts' : `/workouts/${id}`)}>
               CANCEL
             </button>
           </div>

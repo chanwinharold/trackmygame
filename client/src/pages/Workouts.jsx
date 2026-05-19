@@ -1,13 +1,31 @@
 import { useNavigate } from 'react-router-dom'
-import { sessions, workoutSummaries } from '../data/data.js'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { workoutsApi } from '../lib/api.js'
 import '../styles/Workouts.css'
 
 export default function Workouts() {
   const navigate = useNavigate()
   const [currentPage, setCurrentPage] = useState(1)
+  const [payload, setPayload] = useState(null)
+  const [error, setError] = useState('')
   const perPage = 5
-  const displayed = sessions.slice(0, currentPage * perPage)
+  const displayed = payload?.items || []
+  const workoutSummaries = payload?.summary || {
+    totalSessions: 0,
+    avgAccuracy: 0,
+    totalMinutes: 0,
+    topStreak: '0 Days',
+  }
+
+  useEffect(() => {
+    workoutsApi.list({ page: currentPage, limit: perPage })
+      .then(setPayload)
+      .catch((err) => setError(err.message))
+  }, [currentPage])
+
+  if (error) {
+    return <div className="card empty-state">{error}</div>
+  }
 
   return (
     <div className="workouts">
@@ -70,19 +88,19 @@ export default function Workouts() {
               <tr key={session.id} onClick={() => navigate(`/workouts/${session.id}`)}>
                 <td>
                   <div className="session-date-cell">
-                    <span className="session-date">{session.date}</span>
-                    <span className="session-day">{session.day}</span>
+                    <span className="session-date">{session.displayDate}</span>
+                    <span className="session-day">{session.dayLabel}</span>
                   </div>
                 </td>
-                <td>{session.duration} min</td>
-                <td>{session.attempted}</td>
-                <td>{session.made}</td>
+                <td>{session.durationMinutes} min</td>
+                <td>{session.shotsAttempted}</td>
+                <td>{session.shotsMade}</td>
                 <td>
                   <span className={`fg-pct ${session.fgPct >= 70 ? 'high' : 'low'}`}>
                     {session.fgPct}%
                   </span>
                 </td>
-                <td className="notes-cell">{session.notes}</td>
+                <td className="notes-cell">{session.notesPreview}</td>
                 <td className="row-actions">
                   <button type="button" aria-label="Session actions">⋮</button>
                 </td>
@@ -93,7 +111,7 @@ export default function Workouts() {
 
         <div className="table-footer">
           <span className="table-info">
-            Showing {displayed.length} of {sessions.length} sessions
+            Showing {displayed.length} of {payload?.pagination.total || 0} sessions
           </span>
           <div className="table-pagination">
             <button
@@ -105,7 +123,7 @@ export default function Workouts() {
             </button>
             <button
               className="pager-link"
-              disabled={displayed.length >= sessions.length}
+              disabled={!payload || currentPage * perPage >= payload.pagination.total}
               onClick={() => setCurrentPage((p) => p + 1)}
             >
               Next

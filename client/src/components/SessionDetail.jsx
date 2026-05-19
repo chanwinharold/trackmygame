@@ -1,11 +1,39 @@
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { sessionDetail } from '../data/data.js'
+import { workoutsApi } from '../lib/api.js'
 import '../styles/SessionDetail.css'
 
 export default function SessionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const session = sessionDetail
+  const [session, setSession] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    workoutsApi.get(id)
+      .then(setSession)
+      .catch((err) => setError(err.message))
+  }, [id])
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this session permanently?')) {
+      return
+    }
+    try {
+      await workoutsApi.delete(id)
+      navigate('/workouts')
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  if (error) {
+    return <div className="card empty-state">{error}</div>
+  }
+
+  if (!session) {
+    return <div className="card empty-state">Loading session...</div>
+  }
 
   return (
     <div className="session-detail">
@@ -17,7 +45,7 @@ export default function SessionDetail() {
           <button className="btn btn-outline" onClick={() => navigate(`/workouts/${id}/edit`)}>
             EDIT SESSION
           </button>
-          <button className="btn btn-danger">DELETE</button>
+          <button className="btn btn-danger" onClick={handleDelete}>DELETE</button>
         </div>
       </div>
 
@@ -28,11 +56,11 @@ export default function SessionDetail() {
           <div className="accuracy-splits">
             <div>
               <span>MADE</span>
-              <strong>{session.made}</strong>
+              <strong>{session.shotsMade}</strong>
             </div>
             <div>
               <span>ATTEMPTED</span>
-              <strong>{session.attempted}</strong>
+              <strong>{session.shotsAttempted}</strong>
             </div>
           </div>
         </div>
@@ -40,11 +68,11 @@ export default function SessionDetail() {
         <div className="detail-side">
           <div className="card metric-card">
             <span className="card-label">SESSION DATE</span>
-            <strong>{session.date}</strong>
+            <strong>{session.displayDate}</strong>
           </div>
           <div className="card metric-card">
             <span className="card-label">DURATION</span>
-            <strong>{session.duration}</strong>
+            <strong>{session.durationLabel}</strong>
           </div>
         </div>
       </div>

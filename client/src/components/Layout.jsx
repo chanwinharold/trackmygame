@@ -1,5 +1,6 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { player } from '../data/data.js'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { authApi, clearToken } from '../lib/api.js'
 import '../styles/Layout.css'
 
 const navItems = [
@@ -33,7 +34,28 @@ function Icon({ name }) {
 
 export default function Layout() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const [player, setPlayer] = useState({ name: 'Player' })
   const topbarOnly = pathname.includes('/edit') || pathname === '/profile'
+
+  useEffect(() => {
+    const loadUser = () => {
+      authApi.me()
+        .then((user) => setPlayer({ name: user.displayName || user.username }))
+        .catch(() => {
+          clearToken()
+          navigate('/login', { replace: true })
+        })
+    }
+    loadUser()
+    window.addEventListener('trackmygame-auth-change', loadUser)
+    return () => window.removeEventListener('trackmygame-auth-change', loadUser)
+  }, [navigate])
+
+  const handleLogout = () => {
+    clearToken()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className={`layout ${topbarOnly ? 'layout-topbar-only' : ''}`}>
@@ -84,7 +106,7 @@ export default function Layout() {
             <div className="avatar">
               {player.name.charAt(0)}
             </div>
-            <button className="logout-btn" type="button" aria-label="Logout">
+            <button className="logout-btn" type="button" aria-label="Logout" onClick={handleLogout}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M10 7V5a2 2 0 0 1 2-2h7v18h-7a2 2 0 0 1-2-2v-2M15 12H3M7 8l-4 4 4 4" />
               </svg>

@@ -1,15 +1,68 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { authApi, clearToken, profileApi } from '../lib/api.js'
 import '../styles/Profile.css'
 
 export default function Profile() {
+  const navigate = useNavigate()
   const [profile, setProfile] = useState({
-    username: 'Julien Dubois',
+    username: '',
+    displayName: '',
   })
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',
     confirm: '',
   })
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    authApi.me()
+      .then((user) => setProfile({ username: user.username, displayName: user.displayName }))
+      .catch((err) => setError(err.message))
+  }, [])
+
+  const handleProfileSave = async () => {
+    setError('')
+    setStatus('')
+    try {
+      const user = await profileApi.update(profile)
+      setProfile({ username: user.username, displayName: user.displayName })
+      setStatus('Profile updated.')
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handlePasswordSave = async () => {
+    setError('')
+    setStatus('')
+    try {
+      await profileApi.updatePassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.new,
+        confirmPassword: passwords.confirm,
+      })
+      setPasswords({ current: '', new: '', confirm: '' })
+      setStatus('Password updated.')
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('Supprimer définitivement votre profil ?')) {
+      return
+    }
+    try {
+      await profileApi.delete()
+      clearToken()
+      navigate('/register', { replace: true })
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   return (
     <div className="profile-page">
@@ -23,6 +76,11 @@ export default function Profile() {
       </div>
 
       <div className="profile-sections">
+        {(error || status) && (
+          <div className={`card empty-state ${error ? 'profile-error' : 'profile-status'}`}>
+            {error || status}
+          </div>
+        )}
         <div className="card profile-section">
           <h2>
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -46,11 +104,11 @@ export default function Profile() {
               <input
                 type="text"
                 value={profile.username}
-                onChange={(e) => setProfile({ username: e.target.value })}
+                onChange={(e) => setProfile({ ...profile, username: e.target.value })}
               />
             </div>
           </div>
-          <button className="btn btn-primary">ENREGISTRER LES MODIFICATIONS</button>
+          <button className="btn btn-primary" onClick={handleProfileSave}>ENREGISTRER LES MODIFICATIONS</button>
         </div>
 
         <div className="card profile-section">
@@ -91,7 +149,7 @@ export default function Profile() {
             </div>
           </div>
           <div className="profile-actions">
-            <button className="btn btn-outline">CHANGER LE MOT DE PASSE</button>
+            <button className="btn btn-outline" onClick={handlePasswordSave}>CHANGER LE MOT DE PASSE</button>
           </div>
         </div>
 
@@ -105,7 +163,7 @@ export default function Profile() {
             vidéos de formation et historiques de performance seront définitivement effacés de
             nos serveurs.
           </p>
-          <button className="btn btn-danger">SUPPRIMER LE PROFIL</button>
+          <button className="btn btn-danger" onClick={handleDelete}>SUPPRIMER LE PROFIL</button>
         </div>
       </div>
     </div>
