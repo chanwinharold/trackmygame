@@ -8,6 +8,17 @@ function getHeaders() {
   }
 }
 
+function normalizeError(err) {
+  if (typeof err.detail === "string") return err
+  if (Array.isArray(err.detail)) {
+    return { detail: err.detail.map((e) => e.msg).join("; ") }
+  }
+  if (err.detail?.message) {
+    return { detail: err.detail.message }
+  }
+  return { detail: err.message || "Request failed" }
+}
+
 async function request(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -16,7 +27,7 @@ async function request(method, path, body) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw err
+    throw normalizeError(err)
   }
   if (res.status === 204) return null
   return res.json()
