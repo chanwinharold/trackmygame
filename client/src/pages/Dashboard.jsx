@@ -8,7 +8,7 @@ import {
 } from 'recharts'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { dashboardApi } from '../lib/api.js'
+import { api } from '../lib/api.js'
 import '../styles/Dashboard.css'
 
 function StatCard({ value, label, change, sub }) {
@@ -90,9 +90,9 @@ export default function Dashboard() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    dashboardApi.get()
+    api.dashboard()
       .then(setStats)
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.detail || err.message))
   }, [])
 
   if (error) {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { authApi, setToken } from '../lib/api.js'
+import { api, setToken } from '../lib/api.js'
 import '../styles/Login.css'
 
 export default function Register() {
@@ -32,7 +32,7 @@ export default function Register() {
     }
     setSubmitting(true)
     try {
-      const response = await authApi.register({
+      const response = await api.register({
         username: form.username,
         displayName: form.username,
         email: form.email,
@@ -41,7 +41,7 @@ export default function Register() {
       setToken(response.accessToken)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(err.detail || err.message)
     } finally {
       setSubmitting(false)
     }

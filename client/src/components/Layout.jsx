@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { authApi, clearToken } from '../lib/api.js'
+import { api, clearToken } from '../lib/api.js'
 import '../styles/Layout.css'
 
 const navItems = [
@@ -40,7 +40,7 @@ export default function Layout() {
 
   useEffect(() => {
     const loadUser = () => {
-      authApi.me()
+      api.me()
         .then((user) => setPlayer({ name: user.displayName || user.username }))
         .catch(() => {
           clearToken()

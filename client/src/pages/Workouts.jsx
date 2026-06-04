@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { workoutsApi } from '../lib/api.js'
+import { api } from '../lib/api.js'
 import '../styles/Workouts.css'
 
 export default function Workouts() {
@@ -18,9 +18,9 @@ export default function Workouts() {
   }
 
   useEffect(() => {
-    workoutsApi.list({ page: currentPage, limit: perPage })
+    api.getWorkouts({ page: currentPage, limit: perPage })
       .then(setPayload)
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.detail || err.message))
   }, [currentPage])
 
   if (error) {

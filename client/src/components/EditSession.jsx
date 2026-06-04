@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { workoutsApi } from '../lib/api.js'
+import { api } from '../lib/api.js'
 import '../styles/EditSession.css'
 
 export default function EditSession() {
@@ -22,7 +22,7 @@ export default function EditSession() {
     if (isNew) {
       return
     }
-    workoutsApi.get(id)
+    api.getWorkout(id)
       .then((session) => {
         setForm({
           date: session.date,
@@ -32,7 +32,7 @@ export default function EditSession() {
           notes: session.trainingNotes,
         })
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.detail || err.message))
       .finally(() => setLoading(false))
   }, [id, isNew])
 
@@ -55,10 +55,10 @@ export default function EditSession() {
       notes: form.notes,
     }
     try {
-      const session = isNew ? await workoutsApi.create(payload) : await workoutsApi.update(id, payload)
+      const session = isNew ? await api.createWorkout(payload) : await api.updateWorkout(id, payload)
       navigate(`/workouts/${session.id}`)
     } catch (err) {
-      setError(err.message)
+      setError(err.detail || err.message)
     } finally {
       setSaving(false)
     }

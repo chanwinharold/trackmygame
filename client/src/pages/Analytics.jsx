@@ -11,7 +11,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useEffect, useState } from 'react'
-import { analyticsApi } from '../lib/api.js'
+import { api } from '../lib/api.js'
 import '../styles/Analytics.css'
 
 export default function Analytics() {
@@ -19,9 +19,9 @@ export default function Analytics() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    analyticsApi.get()
+    api.analytics()
       .then(setAnalytics)
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.detail || err.message))
   }, [])
 
   if (error) {

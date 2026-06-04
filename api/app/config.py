@@ -1,7 +1,19 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _find_env_file() -> str:
+    candidates = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return ".env"
 
 
 class Settings(BaseSettings):
@@ -13,7 +25,7 @@ class Settings(BaseSettings):
     frontend_origin: str = Field(default="http://127.0.0.1:5173", alias="FRONTEND_ORIGIN")
     extra_cors_origins: str = Field(default="", alias="EXTRA_CORS_ORIGINS")
 
-    model_config = SettingsConfigDict(env_file="api/.env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_find_env_file(), env_file_encoding="utf-8", extra="ignore")
 
     @field_validator("database_url")
     @classmethod

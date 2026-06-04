@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { workoutsApi } from '../lib/api.js'
+import { api } from '../lib/api.js'
 import '../styles/SessionDetail.css'
 
 export default function SessionDetail() {
@@ -10,9 +10,9 @@ export default function SessionDetail() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    workoutsApi.get(id)
+    api.getWorkout(id)
       .then(setSession)
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.detail || err.message))
   }, [id])
 
   const handleDelete = async () => {
@@ -20,10 +20,10 @@ export default function SessionDetail() {
       return
     }
     try {
-      await workoutsApi.delete(id)
+      await api.deleteWorkout(id)
       navigate('/workouts')
     } catch (err) {
-      setError(err.message)
+      setError(err.detail || err.message)
     }
   }
 

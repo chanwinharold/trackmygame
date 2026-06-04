@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -59,20 +59,22 @@ def analytics(user: User = Depends(current_user), db: Session = Depends(get_db))
     stable = sorted(shot_profile, key=lambda item: abs(item.value - 75))[0]
 
     trends = weekly_buckets(sessions)
-    current_attempted = sum(point.volume for point in trends[-3:])
-    current_made = 0
-    previous_attempted = 0
-    previous_made = 0
+    training_load_volume = trends[-1].volume if trends else 0
+    eff_current_attempted = 0
+    eff_current_made = 0
+    eff_previous_attempted = 0
+    eff_previous_made = 0
     midpoint = date.today() - timedelta(days=21)
     for session in sessions:
         if session.date >= midpoint:
-            current_made += session.shots_made
+            eff_current_attempted += session.shots_attempted
+            eff_current_made += session.shots_made
         else:
-            previous_attempted += session.shots_attempted
-            previous_made += session.shots_made
+            eff_previous_attempted += session.shots_attempted
+            eff_previous_made += session.shots_made
 
-    current_accuracy = accuracy(current_made, current_attempted)
-    previous_accuracy = accuracy(previous_made, previous_attempted)
+    current_accuracy = accuracy(eff_current_made, eff_current_attempted)
+    previous_accuracy = accuracy(eff_previous_made, eff_previous_attempted)
     delta = round(current_accuracy - previous_accuracy, 1)
     sign = "+" if delta >= 0 else ""
     accuracies = [accuracy(session.shots_made, session.shots_attempted) for session in sessions]
@@ -90,8 +92,8 @@ def analytics(user: User = Depends(current_user), db: Session = Depends(get_db))
             consistencyDelta="+9 pts over baseline" if accuracies else "+0 pts over baseline",
             shotQuality=shot_quality,
             shotQualityLabel=f"Best in {best.zone}",
-            trainingLoad=current_attempted,
-            trainingLoadLabel="Attempts this cycle",
+            trainingLoad=training_load_volume,
+            trainingLoadLabel="Attempts this week",
             efficiencyDelta=f"{sign}{delta}%",
             efficiencyDeltaLabel="Compared to prior cycle",
         ),
@@ -113,6 +115,29 @@ def analytics(user: User = Depends(current_user), db: Session = Depends(get_db))
     )
 
 
-@router.get("/export", response_model=AnalyticsResponse)
-def export_analytics(user: User = Depends(current_user), db: Session = Depends(get_db)) -> AnalyticsResponse:
-    return analytics(user=user, db=db)
+@router.get("/export")
+def export_analytics(
+    range: str = Query(default="6w"),
+    format: str = Query(default="json"),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    data = analytics(user=user, db=db)
+    if format == "csv":
+        import csv as csv_lib
+        import io
+
+        output = io.StringIO()
+        writer = csv_lib.writer(output)
+        writer.writerow(["field", "value"])
+        writer.writerow(["consistencyIndex", data.kpis.consistencyIndex])
+        writer.writerow(["shotQuality", data.kpis.shotQuality])
+        writer.writerow(["trainingLoad", data.kpis.trainingLoad])
+        writer.writerow(["efficiencyDelta", data.kpis.efficiencyDelta])
+        for point in data.trend:
+            writer.writerow([f"trend_{point.label}_accuracy", point.accuracy])
+            writer.writerow([f"trend_{point.label}_volume", point.volume])
+        for profile in data.shotProfile:
+            writer.writerow([f"zone_{profile.zone}", profile.value])
+        return Response(content=output.getvalue(), media_type="text/csv")
+    return data

@@ -1,83 +1,58 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const TOKEN_KEY = 'trackmygame_token'
+const BASE = import.meta.env.VITE_API_BASE_URL
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
+function getHeaders() {
+  const token = localStorage.getItem("token")
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+}
+
+async function request(method, path, body) {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: getHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw err
+  }
+  if (res.status === 204) return null
+  return res.json()
+}
+
+export const api = {
+  login: (body) => request("POST", "/auth/login", body),
+  register: (body) => request("POST", "/auth/register", body),
+  me: () => request("GET", "/auth/me"),
+  dashboard: () => request("GET", "/dashboard"),
+  getWorkouts: (params = {}) => request("GET", `/workouts?${new URLSearchParams(params)}`),
+  getWorkout: (id) => request("GET", `/workouts/${id}`),
+  createWorkout: (body) => request("POST", "/workouts", body),
+  updateWorkout: (id, body) => request("PATCH", `/workouts/${id}`, body),
+  deleteWorkout: (id) => request("DELETE", `/workouts/${id}`),
+  analytics: (range = "6w") => request("GET", `/analytics?range=${range}`),
+  analyticsExport: (range = "6w", format = "json") =>
+    request("GET", `/analytics/export?range=${range}&format=${format}`),
+  updateProfile: (body) => request("PATCH", "/profile", body),
+  changePassword: (body) => request("PATCH", "/profile/password", body),
+  deleteProfile: () => request("DELETE", "/profile"),
 }
 
 export function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token)
-  window.dispatchEvent(new Event('trackmygame-auth-change'))
+  localStorage.setItem("token", token)
+  window.dispatchEvent(new Event("trackmygame-auth-change"))
 }
 
 export function clearToken() {
-  const hadToken = Boolean(localStorage.getItem(TOKEN_KEY))
-  localStorage.removeItem(TOKEN_KEY)
+  const hadToken = Boolean(localStorage.getItem("token"))
+  localStorage.removeItem("token")
   if (hadToken) {
-    window.dispatchEvent(new Event('trackmygame-auth-change'))
+    window.dispatchEvent(new Event("trackmygame-auth-change"))
   }
 }
 
 export function isAuthenticated() {
-  return Boolean(getToken())
-}
-
-export async function apiRequest(path, options = {}) {
-  const token = getToken()
-  const headers = {
-    ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  })
-
-  if (response.status === 401) {
-    clearToken()
-  }
-
-  const contentType = response.headers.get('content-type') || ''
-  const payload = contentType.includes('application/json') ? await response.json() : null
-
-  if (!response.ok) {
-    const message =
-      typeof payload?.detail === 'string'
-        ? payload.detail
-        : payload?.detail?.message || 'Request failed'
-    throw new Error(message)
-  }
-
-  return payload
-}
-
-export const authApi = {
-  login: (payload) => apiRequest('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
-  register: (payload) => apiRequest('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
-  me: () => apiRequest('/auth/me'),
-}
-
-export const profileApi = {
-  update: (payload) => apiRequest('/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
-  updatePassword: (payload) => apiRequest('/profile/password', { method: 'PATCH', body: JSON.stringify(payload) }),
-  delete: () => apiRequest('/profile', { method: 'DELETE' }),
-}
-
-export const workoutsApi = {
-  list: ({ page = 1, limit = 5 } = {}) => apiRequest(`/workouts?page=${page}&limit=${limit}`),
-  get: (id) => apiRequest(`/workouts/${id}`),
-  create: (payload) => apiRequest('/workouts', { method: 'POST', body: JSON.stringify(payload) }),
-  update: (id, payload) => apiRequest(`/workouts/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
-  delete: (id) => apiRequest(`/workouts/${id}`, { method: 'DELETE' }),
-}
-
-export const dashboardApi = {
-  get: () => apiRequest('/dashboard'),
-}
-
-export const analyticsApi = {
-  get: () => apiRequest('/analytics'),
-  export: () => apiRequest('/analytics/export'),
+  return Boolean(localStorage.getItem("token"))
 }

@@ -41,10 +41,11 @@ def top_streak(sessions: list[TrainingSession]) -> str:
 
 def consistency_index(values: list[float]) -> int:
     if len(values) < 2:
-        return 100 if values else 0
+        return 50
     mean = sum(values) / len(values)
     variance = sum((value - mean) ** 2 for value in values) / len(values)
-    return max(0, min(100, round(100 - sqrt(variance) * 2)))
+    stddev = sqrt(variance)
+    return max(0, min(100, round(100 - stddev)))
 
 
 def aggregate_zones(zones: list[ShotZone]) -> dict[str, dict[str, float | int | str]]:

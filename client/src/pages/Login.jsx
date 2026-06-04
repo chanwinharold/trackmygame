@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { authApi, setToken } from '../lib/api.js'
+import { api, setToken } from '../lib/api.js'
 import '../styles/Login.css'
 
 export default function Login() {
@@ -18,11 +18,11 @@ export default function Login() {
     setError('')
     setSubmitting(true)
     try {
-      const response = await authApi.login({ email, password, rememberDevice: remember })
+      const response = await api.login({ email, password, rememberDevice: remember })
       setToken(response.accessToken)
       navigate(location.state?.from?.pathname || '/dashboard', { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(err.detail || err.message)
     } finally {
       setSubmitting(false)
     }

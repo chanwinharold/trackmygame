@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authApi, clearToken, profileApi } from '../lib/api.js'
+import { api, clearToken } from '../lib/api.js'
 import '../styles/Profile.css'
 
 export default function Profile() {
@@ -18,16 +18,16 @@ export default function Profile() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    authApi.me()
+    api.me()
       .then((user) => setProfile({ username: user.username, displayName: user.displayName }))
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.detail || err.message))
   }, [])
 
   const handleProfileSave = async () => {
     setError('')
     setStatus('')
     try {
-      const user = await profileApi.update(profile)
+      const user = await api.updateProfile(profile)
       setProfile({ username: user.username, displayName: user.displayName })
       setStatus('Profile updated.')
     } catch (err) {
@@ -39,7 +39,7 @@ export default function Profile() {
     setError('')
     setStatus('')
     try {
-      await profileApi.updatePassword({
+      await api.changePassword({
         currentPassword: passwords.current,
         newPassword: passwords.new,
         confirmPassword: passwords.confirm,
@@ -56,11 +56,11 @@ export default function Profile() {
       return
     }
     try {
-      await profileApi.delete()
+      await api.deleteProfile()
       clearToken()
       navigate('/register', { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(err.detail || err.message)
     }
   }
 
